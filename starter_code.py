@@ -33,8 +33,22 @@ def bubble_sort(arr):
     # Hint: Use nested loops - outer loop for passes, inner loop for comparisons
     # Hint: Compare adjacent elements and swap if left > right
     
-    pass  # Delete this and write your code
+    n = len(arr)
 
+    for i in range(n):
+        swapped = False
+
+        # After i passes, the last i elements are already in place
+        for j in range(0, n - 1 - i):
+            if arr[j] > arr[j + 1]:  # strict > keeps stability
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                swapped = True
+
+        # If we did no swaps, the list is already sorted
+        if not swapped:
+            break
+
+    return arr
 
 def selection_sort(arr):
     """
@@ -54,8 +68,22 @@ def selection_sort(arr):
     """
     # TODO: Implement selection sort
     # Hint: Find minimum element in unsorted portion, swap it with first unsorted element
-    
-    pass  # Delete this and write your code
+
+    n = len(arr)
+
+    for i in range(n):
+        min_index = i
+
+        # Find index of smallest element in unsorted region
+        for j in range(i + 1, n):
+            if arr[j] < arr[min_index]:
+                min_index = j
+
+        # Swap min into correct position
+        if min_index != i:
+            arr[i], arr[min_index] = arr[min_index], arr[i]
+
+    return arr
 
 
 def insertion_sort(arr):
@@ -77,7 +105,20 @@ def insertion_sort(arr):
     # TODO: Implement insertion sort
     # Hint: Start from second element, insert it into correct position in sorted portion
     
-    pass  # Delete this and write your code
+
+    for i in range(1, len(arr)):
+        key = arr[i]          # the item we want to insert
+        j = i - 1
+
+        # Shift larger elements to the right
+        while j >= 0 and arr[j] > key:  # strict > keeps stability
+            arr[j + 1] = arr[j]
+            j -= 1
+
+        # Insert key into the correct position
+        arr[j + 1] = key
+
+    return arr
 
 
 def merge_sort(arr):
@@ -101,7 +142,37 @@ def merge_sort(arr):
     # Hint: Recursive case - split array in half, sort each half, merge sorted halves
     # Hint: You'll need a helper function to merge two sorted arrays
     
-    pass  # Delete this and write your code
+    # Base case: empty or single element is already sorted
+    if len(arr) <= 1:
+        return arr
+
+    mid = len(arr) // 2
+    left_sorted = merge_sort(arr[:mid])
+    right_sorted = merge_sort(arr[mid:])
+
+    return _merge(left_sorted, right_sorted)
+
+
+def _merge(left, right):
+    merged = []
+    i = 0
+    j = 0
+
+    # Merge until one side is empty
+    while i < len(left) and j < len(right):
+        # <= makes it stable (ties keep left-side order)
+        if left[i] <= right[j]:
+            merged.append(left[i])
+            i += 1
+        else:
+            merged.append(right[j])
+            j += 1
+
+    # Append leftovers
+    merged.extend(left[i:])
+    merged.extend(right[j:])
+
+    return merged
 
 
 # ============================================================================
@@ -142,6 +213,101 @@ def demonstrate_stability():
     
     # TODO: Test each algorithm and update results dictionary with "Stable" or "Unstable"
     
+    products = [
+        {"name": "Widget A", "price": 1999, "original_position": 0},
+        {"name": "Gadget B", "price": 999,  "original_position": 1},
+        {"name": "Widget C", "price": 1999, "original_position": 2},
+        {"name": "Tool D",   "price": 999,  "original_position": 3},
+        {"name": "Widget E", "price": 1999, "original_position": 4},
+    ]
+
+    def is_stable(sorted_items):
+        # For each price, original_position must never go backwards
+        last_seen = {}
+        for item in sorted_items:
+            p = item["price"]
+            pos = item["original_position"]
+            if p in last_seen and pos < last_seen[p]:
+                return False
+            last_seen[p] = pos
+        return True
+
+    # Key-based bubble sort (stable with >)
+    def bubble_sort_key(items, key):
+        arr = items.copy()
+        n = len(arr)
+        for i in range(n):
+            swapped = False
+            for j in range(0, n - 1 - i):
+                if key(arr[j]) > key(arr[j + 1]):
+                    arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                    swapped = True
+            if not swapped:
+                break
+        return arr
+
+    # Key-based selection sort (typically unstable)
+    def selection_sort_key(items, key):
+        arr = items.copy()
+        n = len(arr)
+        for i in range(n):
+            min_index = i
+            for j in range(i + 1, n):
+                if key(arr[j]) < key(arr[min_index]):
+                    min_index = j
+            if min_index != i:
+                arr[i], arr[min_index] = arr[min_index], arr[i]
+        return arr
+
+    # Key-based insertion sort (stable with >)
+    def insertion_sort_key(items, key):
+        arr = items.copy()
+        for i in range(1, len(arr)):
+            item = arr[i]
+            j = i - 1
+            while j >= 0 and key(arr[j]) > key(item):
+                arr[j + 1] = arr[j]
+                j -= 1
+            arr[j + 1] = item
+        return arr
+
+    # Key-based merge sort (stable with <=)
+    def merge_sort_key(items, key):
+        if len(items) <= 1:
+            return items
+        mid = len(items) // 2
+        left = merge_sort_key(items[:mid], key)
+        right = merge_sort_key(items[mid:], key)
+        return merge_key(left, right, key)
+
+    def merge_key(left, right, key):
+        merged = []
+        i = j = 0
+        while i < len(left) and j < len(right):
+            if key(left[i]) <= key(right[j]):  # <= keeps stability
+                merged.append(left[i]); i += 1
+            else:
+                merged.append(right[j]); j += 1
+        merged.extend(left[i:])
+        merged.extend(right[j:])
+        return merged
+
+    key_fn = lambda x: x["price"]
+
+    results = {}
+
+    bubble_sorted = bubble_sort_key(products, key_fn)
+    results["bubble_sort"] = "Stable" if is_stable(bubble_sorted) else "Unstable"
+
+    selection_sorted = selection_sort_key(products, key_fn)
+    results["selection_sort"] = "Stable" if is_stable(selection_sorted) else "Unstable"
+
+    insertion_sorted = insertion_sort_key(products, key_fn)
+    results["insertion_sort"] = "Stable" if is_stable(insertion_sorted) else "Unstable"
+
+    merge_sorted = merge_sort_key(products, key_fn)
+    results["merge_sort"] = "Stable" if is_stable(merge_sorted) else "Unstable"
+
     return results
 
 
@@ -287,8 +453,8 @@ if __name__ == "__main__":
     
     # Uncomment these as you complete each part:
     
-    # test_sorting_correctness()
-    # benchmark_all_datasets()
-    # analyze_stability()
+    test_sorting_correctness()
+    benchmark_all_datasets()
+    analyze_stability()
     
-    print("\n⚠ Uncomment the test functions in the main block to run benchmarks!")
+    # print("\n⚠ Uncomment the test functions in the main block to run benchmarks!")
